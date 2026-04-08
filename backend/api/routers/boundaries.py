@@ -9,28 +9,16 @@ import cv2
 import numpy as np
 from fastapi import APIRouter, HTTPException
 
-try:
-    from api.config import (
-        UPLOAD_DIR, MASK_DIR,
-        image_processor, model_manager, boundary_detector,
-    )
-    from api.schemas import (
-        BoundaryRequest, BoundaryResponse,
-        GPTBoundaryRequest, GPTBoundaryResponse,
-    )
-    from utils.image_processor import ImageProcessor
-    from utils.gpt_boundary import GPTBoundaryExtractor
-except ImportError:
-    from backend.api.config import (
-        UPLOAD_DIR, MASK_DIR,
-        image_processor, model_manager, boundary_detector,
-    )
-    from backend.api.schemas import (
-        BoundaryRequest, BoundaryResponse,
-        GPTBoundaryRequest, GPTBoundaryResponse,
-    )
-    from backend.utils.image_processor import ImageProcessor
-    from backend.utils.gpt_boundary import GPTBoundaryExtractor
+from ..config import (
+    UPLOAD_DIR, MASK_DIR,
+    image_processor, model_manager, boundary_detector,
+)
+from ..schemas import (
+    BoundaryRequest, BoundaryResponse,
+    GPTBoundaryRequest, GPTBoundaryResponse,
+)
+from ...utils.image_processor import ImageProcessor
+from ...utils.gpt_boundary import GPTBoundaryExtractor
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

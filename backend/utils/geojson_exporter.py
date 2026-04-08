@@ -12,7 +12,7 @@ try:
 except ImportError:
     SHAPELY_AVAILABLE = False
 
-from backend.utils.worldfile import WorldFile
+from .worldfile import WorldFile
 
 
 class GeoJSONExporter:

@@ -16,34 +16,19 @@ import numpy as np
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, StreamingResponse
 
-try:
-    from api.config import (
-        BATCH_DIR, MASK_DIR,
-        MAX_BATCH_ZIP_SIZE, MAX_BATCH_IMAGES, SUPPORTED_IMAGE_EXTS,
-        image_processor, model_manager,
-    )
-    from api.schemas import (
-        BatchItem, BatchJob, ItemStatus, JobStatus,
-        BatchUploadResponse, BatchWorldfileUploadResponse,
-        BatchRunRequest, BatchStatusResponse,
-    )
-    from utils.gpt_boundary import GPTBoundaryExtractor
-    from utils.worldfile import WorldFile
-    from utils.geojson_exporter import GeoJSONExporter
-except ImportError:
-    from backend.api.config import (
-        BATCH_DIR, MASK_DIR,
-        MAX_BATCH_ZIP_SIZE, MAX_BATCH_IMAGES, SUPPORTED_IMAGE_EXTS,
-        image_processor, model_manager,
-    )
-    from backend.api.schemas import (
-        BatchItem, BatchJob, ItemStatus, JobStatus,
-        BatchUploadResponse, BatchWorldfileUploadResponse,
-        BatchRunRequest, BatchStatusResponse,
-    )
-    from backend.utils.gpt_boundary import GPTBoundaryExtractor
-    from backend.utils.worldfile import WorldFile
-    from backend.utils.geojson_exporter import GeoJSONExporter
+from ..config import (
+    BATCH_DIR, MASK_DIR,
+    MAX_BATCH_ZIP_SIZE, MAX_BATCH_IMAGES, SUPPORTED_IMAGE_EXTS,
+    image_processor, model_manager,
+)
+from ..schemas import (
+    BatchItem, BatchJob, ItemStatus, JobStatus,
+    BatchUploadResponse, BatchWorldfileUploadResponse,
+    BatchRunRequest, BatchStatusResponse,
+)
+from ...utils.gpt_boundary import GPTBoundaryExtractor
+from ...utils.worldfile import WorldFile
+from ...utils.geojson_exporter import GeoJSONExporter
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/batch")

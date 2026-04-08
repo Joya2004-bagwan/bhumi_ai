@@ -7,26 +7,15 @@ from pathlib import Path
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
-try:
-    from api.config import (
-        UPLOAD_DIR, MASK_DIR, MAX_FILE_SIZE, SEGMENTATION_TIMEOUT,
-        image_processor, model_manager,
-    )
-    from api.schemas import (
-        UploadResponse, SegmentRequest, SegmentResponse,
-        ModelInfo, ModelsResponse,
-    )
-    from utils.image_processor import ImageProcessor
-except ImportError:
-    from backend.api.config import (
-        UPLOAD_DIR, MASK_DIR, MAX_FILE_SIZE, SEGMENTATION_TIMEOUT,
-        image_processor, model_manager,
-    )
-    from backend.api.schemas import (
-        UploadResponse, SegmentRequest, SegmentResponse,
-        ModelInfo, ModelsResponse,
-    )
-    from backend.utils.image_processor import ImageProcessor
+from ..config import (
+    UPLOAD_DIR, MASK_DIR, MAX_FILE_SIZE, SEGMENTATION_TIMEOUT,
+    image_processor, model_manager,
+)
+from ..schemas import (
+    UploadResponse, SegmentRequest, SegmentResponse,
+    ModelInfo, ModelsResponse,
+)
+from ...utils.image_processor import ImageProcessor
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

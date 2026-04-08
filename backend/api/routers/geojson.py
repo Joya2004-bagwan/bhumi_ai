@@ -7,22 +7,13 @@ from pathlib import Path
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
-try:
-    from api.config import UPLOAD_DIR, model_manager, image_processor
-    from api.schemas import (
-        GeoJSONSegmentRequest, GeoJSONSegmentResponse,
-        WorldFileUploadResponse
-    )
-    from utils.worldfile import WorldFile
-    from utils.geojson_exporter import GeoJSONExporter
-except ImportError:
-    from backend.api.config import UPLOAD_DIR, model_manager, image_processor
-    from backend.api.schemas import (
-        GeoJSONSegmentRequest, GeoJSONSegmentResponse,
-        WorldFileUploadResponse
-    )
-    from backend.utils.worldfile import WorldFile
-    from backend.utils.geojson_exporter import GeoJSONExporter
+from ..config import UPLOAD_DIR, model_manager, image_processor
+from ..schemas import (
+    GeoJSONSegmentRequest, GeoJSONSegmentResponse,
+    WorldFileUploadResponse
+)
+from ...utils.worldfile import WorldFile
+from ...utils.geojson_exporter import GeoJSONExporter
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

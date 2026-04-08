@@ -21,14 +21,9 @@ _torch_home = _os.getenv("TORCH_HOME")
 if _torch_home:
     _os.environ["TORCH_HOME"] = _torch_home
 
-try:
-    from utils.image_processor import ImageProcessor
-    from models.segmentation_model_manager import SegmentationModelManager
-    from utils.boundary_detector import BoundaryDetector
-except ImportError:
-    from backend.utils.image_processor import ImageProcessor
-    from backend.models.segmentation_model_manager import SegmentationModelManager
-    from backend.utils.boundary_detector import BoundaryDetector
+from ..utils.image_processor import ImageProcessor
+from ..models.segmentation_model_manager import SegmentationModelManager
+from ..utils.boundary_detector import BoundaryDetector
 
 logger = logging.getLogger(__name__)
 

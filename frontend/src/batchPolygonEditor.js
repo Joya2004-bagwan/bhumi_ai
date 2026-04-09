@@ -50,9 +50,34 @@ export class BatchItemEditor {
     this._hint = document.createElement('span');
     this._hint.className = 'bpe-hint';
     this._hint.textContent = 'Click a polygon to select · drag handles to move vertices';
+
+    // Zoom controls
+    const zoomLabel = document.createElement('span');
+    zoomLabel.className = 'bpe-hint';
+    zoomLabel.textContent = 'Zoom:';
+    const zoomBtns = [1, 1.5, 2, 3].map(z => {
+      const b = this._makeBtn(`${z}×`, z === (this._scale || 1.5) ? '#00bcd4' : '#555', () => {
+        this._scale = z;
+        // rebuild editor in place, preserving polygons
+        const ec = this._container.querySelector('.bpe-container');
+        if (ec) {
+          // remove wrap, infoBar, saveBar — keep header+toolbar
+          while (ec.children.length > 2) ec.removeChild(ec.lastChild);
+        }
+        const imgEl = new Image();
+        imgEl.onload = () => this._buildEditor(imgEl);
+        imgEl.src = this._imageUrl;
+      });
+      b.style.padding = '3px 8px';
+      b.style.fontSize = '0.75rem';
+      return b;
+    });
+
     toolbar.appendChild(this._drawBtn);
     toolbar.appendChild(this._cancelDrawBtn);
     toolbar.appendChild(this._hint);
+    toolbar.appendChild(zoomLabel);
+    zoomBtns.forEach(b => toolbar.appendChild(b));
     editorContainer.appendChild(toolbar);
 
     // ── Load image then build SVG editor ────────────────────────────────────
@@ -80,23 +105,37 @@ export class BatchItemEditor {
   }
 
   _buildEditor(img) {
-    // Get the editor container that was created in build()
     const editorContainer = this._container.querySelector('.bpe-container');
     if (!editorContainer) return;
 
-    // Container with position:relative so SVG can overlay the image
+    // default scale — can be changed via zoom buttons
+    this._scale = this._scale || 1.5;
+
+    // wrap is scrollable so enlarged image can be panned
+    const wrap = document.createElement('div');
+    wrap.className = 'bpe-canvas-wrap';
+    wrap.style.cssText = 'width:100%;background:#111;display:flex;align-items:flex-start;justify-content:center;overflow:auto;max-height:80vh;';
+    this._wrap = wrap;
+
     const container = document.createElement('div');
-    container.style.cssText = 'position:relative;display:inline-block;max-width:100%;line-height:0;';
+    container.style.cssText = 'position:relative;line-height:0;flex-shrink:0;';
 
     const bgImg = document.createElement('img');
     bgImg.src = img.src;
     bgImg.alt = this._filename;
-    bgImg.style.cssText = 'display:block;max-width:100%;max-height:70vh;object-fit:contain;';
+    bgImg.className = 'bpe-bg-img';
+    // explicit pixel size — scale controls zoom, no CSS max-height constraint
+    bgImg.style.cssText = `display:block;width:${Math.round(this._imgW * this._scale)}px;height:${Math.round(this._imgH * this._scale)}px;`;
+    this._bgImg = bgImg;
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;';
+    svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;';
     svg.setAttribute('viewBox', `0 0 ${this._imgW} ${this._imgH}`);
-    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    // Set explicit pixel dimensions so getScreenCTM() resolves correctly
+    // before the browser has finished percentage-based layout
+    svg.setAttribute('width',  String(Math.round(this._imgW * this._scale)));
+    svg.setAttribute('height', String(Math.round(this._imgH * this._scale)));
     this._svg = svg;
 
     svg.addEventListener('click',    e => this._onSVGClick(e));
@@ -104,21 +143,16 @@ export class BatchItemEditor {
 
     container.appendChild(bgImg);
     container.appendChild(svg);
-
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'width:100%;background:#111;border:1px solid #ddd;text-align:center;padding:10px;';
     wrap.appendChild(container);
     editorContainer.appendChild(wrap);
 
     this._renderAllPolygons();
 
-    // ── Info bar ─────────────────────────────────────────────────────────────
     this._infoBar = document.createElement('div');
     this._infoBar.className = 'bpe-info-bar';
     this._updateInfoBar();
     editorContainer.appendChild(this._infoBar);
 
-    // ── Save bar ─────────────────────────────────────────────────────────────
     const saveBar = document.createElement('div');
     saveBar.className = 'bpe-save-bar';
     const saveLabel = document.createElement('span');
@@ -227,10 +261,17 @@ export class BatchItemEditor {
   _cancelDraw() { this._resetDrawUI(); }
 
   _svgCoords(e) {
-    const rect = this._svg.getBoundingClientRect();
+    // getScreenCTM() is the only reliable method — it accounts for all
+    // ancestor transforms, scroll offsets, and CSS scaling in one shot.
+    // Works correctly because preserveAspectRatio:none means the CTM is
+    // a pure scale+translate with no letterbox padding.
+    const pt = this._svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const svgP = pt.matrixTransform(this._svg.getScreenCTM().inverse());
     return [
-      Math.round((e.clientX - rect.left) * (this._imgW / rect.width)),
-      Math.round((e.clientY - rect.top)  * (this._imgH / rect.height)),
+      Math.max(0, Math.min(this._imgW, Math.round(svgP.x))),
+      Math.max(0, Math.min(this._imgH, Math.round(svgP.y))),
     ];
   }
 
@@ -286,8 +327,7 @@ export class BatchItemEditor {
 
   _onHandleMouseDown(e, polyIdx, ptIdx) {
     e.preventDefault();
-    const rect = this._svg.getBoundingClientRect();
-    this._dragState = { polyIdx, ptIdx, rect, scaleX: this._imgW / rect.width, scaleY: this._imgH / rect.height };
+    this._dragState = { polyIdx, ptIdx };
     const onMove = ev => this._onMouseMove(ev);
     const onUp   = () => { this._dragState = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
     window.addEventListener('mousemove', onMove);
@@ -296,9 +336,8 @@ export class BatchItemEditor {
 
   _onMouseMove(e) {
     if (!this._dragState || !this._svg) return;
-    const { polyIdx, ptIdx, rect, scaleX, scaleY } = this._dragState;
-    const newX = Math.round((e.clientX - rect.left) * scaleX);
-    const newY = Math.round((e.clientY - rect.top)  * scaleY);
+    const { polyIdx, ptIdx } = this._dragState;
+    const [newX, newY] = this._svgCoords(e);
     this._polygons[polyIdx][ptIdx] = [newX, newY];
     const g = this._svg.querySelector(`g[data-poly-idx="${polyIdx}"]`);
     if (g) {

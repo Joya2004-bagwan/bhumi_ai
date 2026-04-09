@@ -289,6 +289,7 @@ export class GPTBoundaryDetector {
     const gptPanel = this._getGptPanel();
     if (!gptPanel) return;
     this._imgW = imgW; this._imgH = imgH;
+    this._scale = this._scale || 1.5;
     gptPanel.innerHTML = '';
 
     const toolbar = document.createElement('div');
@@ -309,22 +310,43 @@ export class GPTBoundaryDetector {
     hint.textContent = 'Click polygon to select, drag handles to move';
     this._hint = hint;
 
+    // Zoom controls
+    const zoomLabel = document.createElement('span');
+    zoomLabel.style.cssText = 'font-size:12px;color:#aaa;margin-left:8px;';
+    zoomLabel.textContent = 'Zoom:';
+    const zoomBtns = [1, 1.5, 2, 3].map(z => {
+      const b = document.createElement('button');
+      b.textContent = `${z}×`;
+      b.style.cssText = `padding:3px 8px;font-size:0.75rem;background:${z === this._scale ? '#00bcd4' : '#555'};color:#fff;border:none;border-radius:4px;cursor:pointer;`;
+      b.addEventListener('click', () => { this._scale = z; this._buildSVGEditor(imgW, imgH); });
+      return b;
+    });
+
     toolbar.appendChild(this._drawBtn);
     toolbar.appendChild(this._cancelDrawBtn);
     toolbar.appendChild(hint);
+    toolbar.appendChild(zoomLabel);
+    zoomBtns.forEach(b => toolbar.appendChild(b));
+
+    const outerWrap = document.createElement('div');
+    outerWrap.style.cssText = 'width:100%;background:#111;text-align:center;line-height:0;overflow:auto;max-height:80vh;';
 
     const container = document.createElement('div');
-    container.style.cssText = 'position:relative;display:block;width:100%;';
+    container.style.cssText = 'position:relative;display:inline-block;line-height:0;';
 
     const bgImg = document.createElement('img');
     bgImg.src = this._imageUrl || ('data:image/png;base64,' + this._overlayB64);
     bgImg.alt = 'Original image';
-    bgImg.style.cssText = 'display:block;width:100%;max-height:85vh;object-fit:contain;';
+    // explicit pixel size driven by scale
+    bgImg.style.cssText = `display:block;width:${Math.round(imgW * this._scale)}px;height:${Math.round(imgH * this._scale)}px;`;
+    this._bgImg = bgImg;
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;';
+    svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;';
     svg.setAttribute('viewBox', '0 0 ' + imgW + ' ' + imgH);
-    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    svg.setAttribute('width',  String(Math.round(imgW * this._scale)));
+    svg.setAttribute('height', String(Math.round(imgH * this._scale)));
     this._svg = svg;
 
     this._polygons.forEach((poly, polyIdx) => this._renderPoly(svg, poly, polyIdx));
@@ -333,10 +355,11 @@ export class GPTBoundaryDetector {
 
     container.appendChild(bgImg);
     container.appendChild(svg);
-    
+    outerWrap.appendChild(container);
+
     if (gptPanel) {
       gptPanel.appendChild(toolbar);
-      gptPanel.appendChild(container);
+      gptPanel.appendChild(outerWrap);
     }
 
     const editBtn = this._getEditBtn();
@@ -436,10 +459,13 @@ export class GPTBoundaryDetector {
   _cancelDraw() { this._resetDrawUI(); }
 
   _svgCoords(e) {
-    const rect = this._svg.getBoundingClientRect();
+    const pt = this._svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const svgP = pt.matrixTransform(this._svg.getScreenCTM().inverse());
     return [
-      Math.round((e.clientX - rect.left) * (this._imgW / rect.width)),
-      Math.round((e.clientY - rect.top)  * (this._imgH / rect.height))
+      Math.max(0, Math.min(this._imgW, Math.round(svgP.x))),
+      Math.max(0, Math.min(this._imgH, Math.round(svgP.y))),
     ];
   }
 
@@ -489,8 +515,7 @@ export class GPTBoundaryDetector {
 
   _onHandleMouseDown(e, polyIdx, ptIdx) {
     e.preventDefault();
-    const rect = this._svg.getBoundingClientRect();
-    this._dragState = { polyIdx, ptIdx, rect, scaleX: this._imgW / rect.width, scaleY: this._imgH / rect.height };
+    this._dragState = { polyIdx, ptIdx };
     const onMove = (ev) => this._onMouseMove(ev);
     const onUp   = () => { this._dragState = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
     window.addEventListener('mousemove', onMove);
@@ -499,9 +524,8 @@ export class GPTBoundaryDetector {
 
   _onMouseMove(e) {
     if (!this._dragState || !this._svg) return;
-    const { polyIdx, ptIdx, rect, scaleX, scaleY } = this._dragState;
-    const newX = Math.round((e.clientX - rect.left) * scaleX);
-    const newY = Math.round((e.clientY - rect.top)  * scaleY);
+    const { polyIdx, ptIdx } = this._dragState;
+    const [newX, newY] = this._svgCoords(e);
     this._polygons[polyIdx][ptIdx] = [newX, newY];
     const g = this._svg.querySelector('g[data-poly-idx="' + polyIdx + '"]');
     if (g) {

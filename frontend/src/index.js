@@ -156,6 +156,8 @@ class BhumiAIApp {
       } else if (page === 'history') {
         console.log('Loading History page...');
         this.loadHistoryPage();
+      } else if (page === 'dashboard') {
+        this.loadDashboardStats();
       }
       
       console.log('=== NAVIGATION COMPLETE ===');
@@ -932,7 +934,7 @@ class BhumiAIApp {
     });
     
     // Load saved theme
-    const savedTheme = localStorage.getItem('theme') || 'dark';
+    const savedTheme = localStorage.getItem('theme') || 'light';
     this.applyTheme(savedTheme);
   }
 
@@ -1196,13 +1198,13 @@ class BhumiAIApp {
     const tbody = document.getElementById('dashboardLogBody');
     if (!tbody) return;
 
-    const fmtColor = { JSON:'#2e7d32', PNG:'#1565c0', JPEG:'#e65100', JPG:'#e65100', ZIP:'#6a1b9a' };
+    const fmtColor = { JSON:'#2e7d32', PNG:'#1565c0', JPEG:'#e65100', JPG:'#e65100', ZIP:'#6a1b9a', GEOJSON:'#0277bd' };
     const renderRows = (records, emptyMsg) => {
       if (!records || records.length === 0) {
         return `<tr><td colspan="3" style="text-align:center;padding:1.5rem;color:var(--text-tertiary);">${emptyMsg}</td></tr>`;
       }
       return [...records].reverse().map(r => {
-        const color = fmtColor[r.format] || 'var(--text-secondary)';
+        const color = fmtColor[(r.format||'').toUpperCase()] || 'var(--text-secondary)';
         const fmtBadge = r.format !== '—'
           ? `<span style="background:${color}22;color:${color};padding:2px 8px;border-radius:8px;font-size:0.75rem;font-weight:700;">${r.format}</span>`
           : `<span style="color:var(--text-tertiary);">—</span>`;
@@ -1219,6 +1221,22 @@ class BhumiAIApp {
       ${renderRows(this.dashboard._singleRecords, 'No single images processed yet.')}
       <tr><td colspan="3" style="padding:0.5rem 1rem;background:var(--bg-tertiary);font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-tertiary);">Batch Processing</td></tr>
       ${renderRows(this.dashboard._batchRecords, 'No batch images processed yet.')}`;
+
+    // Add / refresh the Clear History button
+    const cardHeader = tbody.closest('.card')?.querySelector('.card-header');
+    if (cardHeader && !cardHeader.querySelector('#clear-history-btn')) {
+      const clearBtn = document.createElement('button');
+      clearBtn.id = 'clear-history-btn';
+      clearBtn.textContent = 'Clear History';
+      clearBtn.style.cssText = 'padding:4px 12px;font-size:0.75rem;background:var(--status-error-bg);color:var(--status-error);border:1px solid var(--status-error);border-radius:var(--radius-md);cursor:pointer;';
+      clearBtn.addEventListener('click', () => {
+        if (confirm('Clear all processing history?')) {
+          this.dashboard.clearAll();
+          this.loadDashboardStats();
+        }
+      });
+      cardHeader.appendChild(clearBtn);
+    }
   }
 
   updateDashboardStats() {

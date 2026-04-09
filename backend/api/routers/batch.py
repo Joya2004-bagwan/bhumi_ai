@@ -33,10 +33,45 @@ from ...utils.geojson_exporter import GeoJSONExporter
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/batch")
 
-# In-memory batch store
-batch_jobs: dict[str, BatchJob] = {}
-
 WORLD_FILE_EXTS = {".pgw", ".tfw", ".jgw", ".wld"}
+JOBS_FILE = BATCH_DIR / "jobs.json"
+
+
+# ── Persistence helpers ───────────────────────────────────────────────────────
+
+def _load_jobs() -> dict[str, BatchJob]:
+    """Load batch_jobs from jobs.json on startup. Missing/corrupt file → empty dict."""
+    if not JOBS_FILE.exists():
+        return {}
+    try:
+        raw = json.loads(JOBS_FILE.read_text(encoding="utf-8"))
+        jobs: dict[str, BatchJob] = {}
+        for batch_id, data in raw.items():
+            try:
+                jobs[batch_id] = BatchJob.model_validate(data)
+            except Exception as e:
+                logger.warning(f"Skipping corrupt job {batch_id}: {e}")
+        logger.info(f"Loaded {len(jobs)} batch job(s) from {JOBS_FILE}")
+        return jobs
+    except Exception as e:
+        logger.warning(f"Could not load jobs.json: {e}")
+        return {}
+
+
+def _save_jobs(jobs: dict[str, BatchJob]) -> None:
+    """Persist batch_jobs to jobs.json atomically (write to .tmp then rename)."""
+    try:
+        BATCH_DIR.mkdir(parents=True, exist_ok=True)
+        tmp = JOBS_FILE.with_suffix(".tmp")
+        payload = {bid: job.model_dump() for bid, job in jobs.items()}
+        tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        tmp.replace(JOBS_FILE)
+    except Exception as e:
+        logger.error(f"Failed to persist jobs.json: {e}")
+
+
+# In-memory batch store — populated from disk on module load
+batch_jobs: dict[str, BatchJob] = _load_jobs()
 
 
 @router.get("/{batch_id}/items/{item_id}/image")
@@ -108,6 +143,7 @@ async def upload_zip(file: UploadFile = File(...)):
 
     job = BatchJob(batch_id=batch_id, status=JobStatus.uploaded, items=items, created_at=datetime.now(timezone.utc).isoformat())
     batch_jobs[batch_id] = job
+    _save_jobs(batch_jobs)
     logger.info(f"Batch uploaded: batch_id={batch_id}, images={len(items)}")
     return BatchUploadResponse(batch_id=batch_id, filenames=[i.original_filename for i in items], total=len(items))
 
@@ -164,6 +200,7 @@ async def upload_worldfiles_zip(batch_id: str, file: UploadFile = File(...)):
             unmatched_images.append(item.original_filename)
 
     job.has_worldfiles = True
+    _save_jobs(batch_jobs)
     logger.info(f"World files uploaded: batch_id={batch_id}, matched={matched}, unmatched={len(unmatched_images)}")
     return BatchWorldfileUploadResponse(
         batch_id=batch_id,
@@ -235,10 +272,12 @@ async def _run_batch_job(batch_id: str):
             item.error = str(e)
             logger.error(f"Batch item failed: item_id={item.item_id}, error={e}")
 
+        _save_jobs(batch_jobs)
         await asyncio.sleep(0)
 
     all_failed = all(i.status == ItemStatus.failed for i in job.items)
     job.status = JobStatus.failed if all_failed else JobStatus.complete
+    _save_jobs(batch_jobs)
     logger.info(f"Batch job complete: batch_id={batch_id}, status={job.status}")
 
 
@@ -257,6 +296,7 @@ async def run_batch(batch_id: str, request: BatchRunRequest, background_tasks: B
 
     job.model = request.model
     job.status = JobStatus.running
+    _save_jobs(batch_jobs)
     background_tasks.add_task(_run_batch_job, batch_id)
     return {"status": "started"}
 
@@ -292,6 +332,7 @@ async def update_item_polygons(batch_id: str, item_id: str, body: dict):
         raise HTTPException(status_code=404, detail="Item not found.")
     item.polygons = body.get("polygons", item.polygons)
     item.building_count = len(item.polygons)
+    _save_jobs(batch_jobs)
     return {"status": "ok"}
 
 
@@ -357,6 +398,7 @@ async def retry_batch_item(batch_id: str, item_id: str, background_tasks: Backgr
         except Exception as e:
             item.status = ItemStatus.failed
             item.error = str(e)
+        _save_jobs(batch_jobs)
 
     background_tasks.add_task(_retry)
     return {"status": "retrying"}

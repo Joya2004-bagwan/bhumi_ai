@@ -1,0 +1,118 @@
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+backend/venv/
+backend/.venv/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+wheels/
+sdist/
+develop-eggs/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+var/
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.hypothesis/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+.pytype/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# ── JavaScript / Node ─────────────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.yarn/
+
+# Build output
+frontend/dist/
+frontend/.vite/
+dist/
+.next/
+.nuxt/
+.output/
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# ── Environment variables ─────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+backend/.env
+
+# ── Uploads / generated files ─────────────────────────────────────────────
+backend/uploads/
+backend/masks/
+backend/static/images/
+backend/static/masks/
+backend/backend/uploads/
+
+# ── Model weights ─────────────────────────────────────────────────────────
+*.pth
+*.pt
+*.onnx
+*.pb
+*.h5
+*.pkl
+*.bin
+backend/checkpoints/
+backend/models/weights/
+
+# ── IDEs ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS ────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ── Logs ──────────────────────────────────────────────────────────────────
+*.log
+logs/

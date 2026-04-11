@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BHUMI AI - Aerial Image Segmentation</title>
+    <link rel="stylesheet" href="src/theme.css">
+    <link rel="stylesheet" href="src/app.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <img src="/logo.png" alt="BHUMI AI" class="sidebar-logo-img">
+                <span class="sidebar-logo-text" style="display:none;">BHUMI AI</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="sidebar-nav-item active" data-page="single">
+                    <span class="sidebar-nav-icon">🖼️</span>
+                    <span>Single Processing</span>
+                </a>
+                <a href="#" class="sidebar-nav-item" data-page="batch">
+                    <span class="sidebar-nav-icon">📦</span>
+                    <span>Batch Processing</span>
+                </a>
+                <a href="#" class="sidebar-nav-item" data-page="dashboard">
+                    <span class="sidebar-nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="sidebar-nav-item" data-page="settings">
+                    <span class="sidebar-nav-icon">⚙️</span>
+                    <span>Settings/Profile</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="sidebar-user-avatar" id="userAvatar">JD</div>
+                    <div class="sidebar-user-info">
+                        <div class="sidebar-user-name" id="userName">J. Doe</div>
+                        <div class="sidebar-user-email" id="userEmail">jdoe@bhumi.ai</div>
+                    </div>
+
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="main-header-breadcrumb">
+                    <span>◀</span>
+                    <span class="main-header-breadcrumb-sep">/</span>
+                    <span>Workspace</span>
+                    <span class="main-header-breadcrumb-sep">/</span>
+                    <span class="main-header-breadcrumb-current" id="currentPage">Dashboard</span>
+                </div>
+                <div class="main-header-actions">
+                </div>
+            </header>
+            
+            <!-- Page Content -->
+            <div class="main-body">
+                <!-- Dashboard Page -->
+                <section id="page-dashboard" class="page-section">
+                    <h1 class="page-title">Dashboard</h1>
+                    <p class="page-subtitle">Live activity from backend logs.</p>
+
+                    <!-- Stat cards -->
+                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <span class="stat-card-label">Images Processed</span>
+                                <span class="stat-card-icon">🖼️</span>
+                            </div>
+                            <div class="stat-card-value" id="statTotalImages">—</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <span class="stat-card-label">Avg Proc. Time</span>
+                                <span class="stat-card-icon">⏱️</span>
+                            </div>
+                            <div class="stat-card-value" id="statAvgTime">—</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <span class="stat-card-label">Total Time in App</span>
+                                <span class="stat-card-icon">🕐</span>
+                            </div>
+                            <div class="stat-card-value" id="statTotalAppTime">—</div>
+                            <div class="stat-card-meta" id="statAppTimeRange"></div>
+                        </div>
+                    </div>
+
+                    <!-- Time-series chart removed -->
+
+                    <!-- Model usage + time in app + export breakdown -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--spacing-lg); margin-top:var(--spacing-lg);">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Model Usage</h2>
+                            </div>
+                            <div style="position:relative; height:200px;">
+                                <canvas id="modelChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Time in App</h2>
+                                <p class="card-subtitle" style="font-size:0.75rem;">24-hour clock · today's sessions</p>
+                            </div>
+                            <div style="position:relative; height:200px;">
+                                <canvas id="timeChart"></canvas>
+                            </div>
+                            <div id="timeChartLegend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:var(--spacing-md);padding-top:var(--spacing-sm);border-top:1px solid var(--border-primary);"></div>
+                        </div>
+                        <div class="card" style="display:flex;flex-direction:column;justify-content:center;">
+                            <div class="card-header">
+                                <h2 class="card-title">Export Breakdown</h2>
+                                <p class="card-subtitle">Exports by format</p>
+                            </div>
+                            <div id="exportChartWrapper" style="position:relative; height:80px;">
+                                <canvas id="exportCanvas"></canvas>
+                            </div>
+                            <div id="exportLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:var(--spacing-md);font-size:0.8rem;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Single + Batch processing charts -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--spacing-lg); margin-top:var(--spacing-lg);">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Single Processing</h2>
+                                <p class="card-subtitle">Buildings detected per image</p>
+                            </div>
+                            <div style="position:relative; height:220px;">
+                                <canvas id="singleChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Batch Processing</h2>
+                                <p class="card-subtitle">Buildings detected per image</p>
+                            </div>
+                            <div style="position:relative; height:220px;">
+                                <canvas id="batchChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Per-image activity table -->
+                    <div class="card" style="margin-top: var(--spacing-lg);">
+                        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <h2 class="card-title">Recent Activity</h2>
+                                <p class="card-subtitle">Buildings detected per image</p>
+                            </div>
+                            <button class="btn btn-secondary" id="dashRefreshBtn" style="font-size:0.8rem;">↻ Refresh</button>
+                        </div>
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Image</th>
+                                        <th>Model</th>
+                                        <th>Buildings Detected</th>
+                                        <th>Export Format</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activityFeed">
+                                    <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-tertiary);">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Single Processing Page -->
+                <section id="page-single" class="page-section">
+                    <h1 class="page-title">Single Processing</h1>
+                    <p class="page-subtitle">Upload and process individual aerial images</p>
+                    
+                    <div id="singleProcessingContent">
+                        <!-- Content will be loaded by JavaScript -->
+                    </div>
+                </section>
+                
+                <!-- Batch Processing Page -->
+                <section id="page-batch" class="page-section">
+                    <h1 class="page-title">Batch Processing</h1>
+                    <p class="page-subtitle">Upload a ZIP file containing multiple geospatial images</p>
+                    
+                    <div id="batchProcessingContent">
+                        <!-- Content will be loaded by JavaScript -->
+                    </div>
+                </section>
+                
+                <!-- Settings/Profile Page -->
+                <section id="page-settings" class="page-section">
+                    <h1 class="page-title">Settings & Profile</h1>
+                    <p class="page-subtitle">Manage your account and preferences</p>
+                    
+                    <div class="settings-layout">
+                        <!-- Profile Card -->
+                        <div class="card settings-profile-card">
+                            <div style="text-align: center;">
+                                <div style="width: 80px; height: 80px; margin: 0 auto var(--spacing-md); background: var(--bg-tertiary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; color: var(--primary-cyan); border: 3px solid var(--primary-cyan);" id="profileAvatar">
+                                    JD
+                                </div>
+                                <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: var(--spacing-xs);" id="profileName">John Doe</h2>
+                                <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: var(--spacing-xs);" id="profileEmail">📧 jdoe@bhumi.ai</p>
+                                <div style="display: inline-flex; align-items: center; gap: var(--spacing-xs); margin-bottom: var(--spacing-xs);">
+                                    <span style="width: 8px; height: 8px; background: var(--status-success); border-radius: 50%;"></span>
+                                    <span style="font-size: 0.875rem; color: var(--status-success); font-weight: 600;" id="profileRole">Admin Operator</span>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: var(--spacing-lg); padding-top: var(--spacing-lg); border-top: 1px solid var(--border-primary);">
+                                <button class="btn btn-primary" style="width: 100%;">Edit Profile</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Settings Tabs -->
+                        <div class="settings-tabs-wrapper">
+                            <div class="settings-tabs-nav">
+                                <button class="settings-tab active" data-tab="preferences">
+                                    <span>👤</span>
+                                    <span>Personal Info</span>
+                                </button>
+                                <button class="settings-tab" data-tab="workspace">
+                                    <span>⚡</span>
+                                    <span>Preferences</span>
+                                </button>
+                                <button class="settings-tab" data-tab="appearance">
+                                    <span>🎨</span>
+                                    <span>Appearance</span>
+                                </button>
+                            </div>
+                            
+                            <!-- Personal Info Tab -->
+                            <div class="settings-tab-content active" id="tab-preferences">
+                                <div class="card">
+                                    <h3 class="card-title">Personal Information</h3>
+                                    <p class="card-subtitle">Update your account details</p>
+                                    
+                                    <div style="margin-top: var(--spacing-lg);">
+                                        <div class="form-group">
+                                            <label class="form-label">Username</label>
+                                            <input type="text" class="form-input" value="johndoe" id="settingsUsername">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Email Address</label>
+                                            <input type="email" class="form-input" value="jdoe@bhumi.ai" id="settingsEmail">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Role</label>
+                                            <input type="text" class="form-input" value="Admin Operator" disabled>
+                                        </div>
+                                        <button class="btn btn-primary">Save Changes</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Workspace Preferences Tab -->
+                            <div class="settings-tab-content" id="tab-workspace">
+                                <div class="card">
+                                    <h3 class="card-title">Workspace Preferences</h3>
+                                    <p class="card-subtitle">Configure your default processing environment</p>
+                                    
+                                    <div style="margin-top: var(--spacing-lg);">
+                                        <div class="form-group">
+                                            <label class="form-label">Default Intelligence Model</label>
+                                            <select class="form-select" id="settingsDefaultModel">
+                                                <option value="yolov8">YOLOv8 (Fast)</option>
+                                                <option value="maskrcnn">Mask R-CNN</option>
+                                            </select>
+                                            <p class="form-hint">Fastest speed for dense urban</p>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">Default Export Format</label>
+                                            <select class="form-select" id="settingsDefaultFormat">
+                                                <option value="json">GeoJSON</option>
+                                                <option value="png">PNG</option>
+                                                <option value="jpeg">JPEG</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                                <div>
+                                                    <label class="form-label" style="margin-bottom: var(--spacing-xs);">Hardware Acceleration</label>
+                                                    <p class="form-hint">Use local GPU for faster rendering if available.</p>
+                                                </div>
+                                                <label class="toggle-switch">
+                                                    <input type="checkbox" id="settingsHardwareAccel" checked>
+                                                    <span class="toggle-slider"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <button class="btn btn-success">Save Preferences</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Appearance Tab -->
+                            <div class="settings-tab-content" id="tab-appearance">
+                                <div class="card">
+                                    <h3 class="card-title">Appearance</h3>
+                                    <p class="card-subtitle">Customize the look and feel of the interface</p>
+                                    
+                                    <div style="margin-top: var(--spacing-lg);">
+                                        <div class="form-group">
+                                            <label class="form-label">Theme</label>
+                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                                                <div class="theme-option" data-theme="dark">
+                                                    <div class="theme-preview theme-preview-dark"></div>
+                                                    <span>Dark</span>
+                                                </div>
+                                                <div class="theme-option active" data-theme="light">
+                                                    <div class="theme-preview theme-preview-light"></div>
+                                                    <span>Light</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <button class="btn btn-success">Apply Theme</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script type="module" src="src/index.js"></script>
+</body>
+</html>
